@@ -28,5 +28,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // 視窗控制
   closeWindow: () => ipcRenderer.send('close-window'),
-  minimizeWindow: () => ipcRenderer.send('minimize-window')
+  minimizeWindow: () => ipcRenderer.send('minimize-window'),
+  setOpacity: (opacity) => ipcRenderer.send('set-opacity', opacity)
 });

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, desktopCapturer, ipcMain } = require('electron');
+const { app, BrowserWindow, globalShortcut, desktopCapturer, ipcMain, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
@@ -83,14 +83,35 @@ function createMainWindow() {
 // 創建工具視窗
 function createToolWindow() {
   if (toolWindow) {
+    // 如果視窗已存在，移動到滑鼠所在螢幕
+    const cursorPoint = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursorPoint);
+    const { x, y, width, height } = display.bounds;
+    
+    // 視窗置中於滑鼠所在螢幕
+    const windowX = x + Math.floor((width - config.window.width) / 2);
+    const windowY = y + Math.floor((height - config.window.height) / 2);
+    
+    toolWindow.setPosition(windowX, windowY);
     toolWindow.show();
     toolWindow.focus();
     return;
   }
 
+  // 獲取滑鼠位置及所在螢幕
+  const cursorPoint = screen.getCursorScreenPoint();
+  const display = screen.getDisplayNearestPoint(cursorPoint);
+  const { x, y, width, height } = display.bounds;
+  
+  // 計算視窗位置（置中於該螢幕）
+  const windowX = x + Math.floor((width - config.window.width) / 2);
+  const windowY = y + Math.floor((height - config.window.height) / 2);
+
   toolWindow = new BrowserWindow({
     width: config.window.width,
     height: config.window.height,
+    x: windowX,
+    y: windowY,
     frame: false,
     transparent: true,
     alwaysOnTop: config.window.alwaysOnTop,
@@ -136,15 +157,32 @@ async function captureScreen() {
       throw new Error('Cannot capture screenshot');
     }
 
-    // 取得主要顯示器（第一個）
-    const primaryScreen = sources[0];
-    const screenshot = primaryScreen.thumbnail.toDataURL({
+    // 獲取滑鼠所在螢幕
+    const cursorPoint = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursorPoint);
+    
+    // 嘗試找到對應的 source（根據顯示器 ID 匹配）
+    let targetSource = sources[0]; // 預設第一個
+    
+    // 如果有多個螢幕，嘗試匹配
+    if (sources.length > 1) {
+      const allDisplays = screen.getAllDisplays();
+      const displayIndex = allDisplays.findIndex(d => d.id === display.id);
+      
+      if (displayIndex >= 0 && displayIndex < sources.length) {
+        targetSource = sources[displayIndex];
+      }
+    }
+    
+    const screenshot = targetSource.thumbnail.toDataURL({
       scaleFactor: config.screenshot.quality
     });
 
+    console.log('Screenshot captured from:', targetSource.name, 'Display ID:', display.id);
+
     return {
       dataURL: screenshot,
-      name: primaryScreen.name
+      name: targetSource.name
     };
   } catch (error) {
     console.error('Screenshot failed:', error);
@@ -179,6 +217,8 @@ function registerGlobalShortcut() {
 
 // IPC 通訊處理
 ipcMain.handle('get-config', () => {
+  // 從 localStorage 或環境變數更新 API Key（如果有）
+  // 注意：主行程無法直接讀取 localStorage，這由渲染程序處理
   return config;
 });
 
@@ -253,10 +293,15 @@ ipcMain.handle('generate-text', async (event, data) => {
     // 判斷是否附帶圖片（僅視覺模型且為 data:image/...）
     const hasImage = supportsVision(apiConfig.modelName) && typeof screenshot === 'string' && screenshot.startsWith('data:image/');
 
+    // 添加系統提示詞
+    const systemMessage = { role: 'system', content: config.ai.systemPrompt || '你是一個專業的文案生成助手。請直接輸出可用的內容，不要加入「當然」「好的」「可以」等客套話。直接回答主體內容，簡潔有力。' };
+    
     // OpenRouter 標準格式：無圖用字串，有圖用 content 陣列 + image_url
-    const messages = hasImage
-      ? [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: screenshot } }] }]
-      : [{ role: 'user', content: prompt }];
+    const userMessage = hasImage
+      ? { role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: screenshot } }] }
+      : { role: 'user', content: prompt };
+
+    const messages = [systemMessage, userMessage];
 
     console.log('Payload type:', hasImage ? 'multimodal' : 'text-only');
     console.log('Request URL:', apiConfig.url);
@@ -359,6 +404,15 @@ ipcMain.on('close-window', () => {
 ipcMain.on('minimize-window', () => {
   if (toolWindow) {
     toolWindow.minimize();
+  }
+});
+
+ipcMain.on('set-opacity', (event, opacity) => {
+  if (toolWindow) {
+    // 確保 opacity 在 0.3 ~ 1.0 之間
+    const validOpacity = Math.max(0.3, Math.min(1.0, opacity));
+    toolWindow.setOpacity(validOpacity);
+    console.log('Window opacity set to:', validOpacity);
   }
 });
 

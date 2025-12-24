@@ -29,7 +29,17 @@ async function init() {
       btnClose: document.getElementById('btnClose'),
       btnMinimize: document.getElementById('btnMinimize'),
       historyList: document.getElementById('historyList'),
-      btnHistoryToggle: document.getElementById('btnHistoryToggle')
+      btnHistoryToggle: document.getElementById('btnHistoryToggle'),
+      opacitySlider: document.getElementById('opacitySlider'),
+      opacityValue: document.getElementById('opacityValue'),
+      btnSettings: document.getElementById('btnSettings'),
+      settingsPanel: document.getElementById('settingsPanel'),
+      btnCloseSettings: document.getElementById('btnCloseSettings'),
+      apiKeyInput: document.getElementById('apiKeyInput'),
+      defaultModelSelect: document.getElementById('defaultModelSelect'),
+      defaultOpacitySlider: document.getElementById('defaultOpacitySlider'),
+      defaultOpacityValue: document.getElementById('defaultOpacityValue'),
+      btnSaveSettings: document.getElementById('btnSaveSettings')
     };
     
     console.log('Elements loaded:', elements);
@@ -40,6 +50,9 @@ async function init() {
     
     // 載入模型選項
     await loadModelOptions();
+    
+    // 載入保存的設置
+    loadSavedSettings();
     
     // 載入歷史記錄
     loadHistory();
@@ -119,6 +132,15 @@ function setupEventListeners() {
     elements.btnMinimize.addEventListener('click', () => {
       console.log('Minimize button clicked');
       window.electronAPI.minimizeWindow();
+    });
+  }
+
+  // 不透明度滑桿
+  if (elements.opacitySlider && elements.opacityValue) {
+    elements.opacitySlider.addEventListener('input', (e) => {
+      const opacity = parseInt(e.target.value);
+      elements.opacityValue.textContent = `${opacity}%`;
+      window.electronAPI.setOpacity(opacity / 100);
     });
   }
 
@@ -215,6 +237,36 @@ function setupEventListeners() {
     });
   }
 
+  // 設置按鈕
+  if (elements.btnSettings) {
+    elements.btnSettings.addEventListener('click', () => {
+      console.log('Settings button clicked');
+      openSettings();
+    });
+  }
+
+  if (elements.btnCloseSettings) {
+    elements.btnCloseSettings.addEventListener('click', () => {
+      console.log('Close settings button clicked');
+      closeSettings();
+    });
+  }
+
+  if (elements.btnSaveSettings) {
+    elements.btnSaveSettings.addEventListener('click', () => {
+      console.log('Save settings button clicked');
+      saveSettings();
+    });
+  }
+
+  // 設置面板中的不透明度滑桿
+  if (elements.defaultOpacitySlider && elements.defaultOpacityValue) {
+    elements.defaultOpacitySlider.addEventListener('input', (e) => {
+      const opacity = parseInt(e.target.value);
+      elements.defaultOpacityValue.textContent = `${opacity}%`;
+    });
+  }
+
   // 監聽截圖事件
   window.electronAPI.onScreenshotCaptured((screenshot) => {
     console.log('Screenshot captured');
@@ -288,6 +340,17 @@ async function generateText() {
     return;
   }
 
+  // 檢查 API Key
+  const apiKey = localStorage.getItem('apiKey') || config.ai.apiKey;
+  if (!apiKey) {
+    alert('請先在設置中配置 OpenRouter API Key');
+    openSettings();
+    return;
+  }
+
+  // 更新 config 的 API Key
+  config.ai.apiKey = apiKey;
+
   // 顯示載入狀態
   elements.btnGenerate.disabled = true;
   elements.loading.style.display = 'flex';
@@ -319,10 +382,6 @@ async function generateText() {
 
       // 生成成功後自動回填到原視窗，不需再按第二顆按鈕
       try {
-        // 先在前端也寫入剪貼簿，方便用戶手動貼上
-        await navigator.clipboard.writeText(currentResult);
-        console.log('Text copied to clipboard in renderer');
-        
         const sendResp = await window.electronAPI.sendTextToWindow(currentResult);
         if (!sendResp.success) {
           console.error('自動回填失敗:', sendResp.error);
@@ -451,6 +510,101 @@ function toggleHistory() {
     elements.historyList.style.display = 'none';
     elements.btnHistoryToggle.textContent = '▼';
   }
+}
+
+// 設置相關功能
+function loadSavedSettings() {
+  // 從 localStorage 讀取保存的設置
+  const savedApiKey = localStorage.getItem('apiKey');
+  const savedModel = localStorage.getItem('defaultModel');
+  const savedOpacity = localStorage.getItem('defaultOpacity');
+
+  // 應用 API Key（如果有）
+  if (savedApiKey) {
+    config.ai.apiKey = savedApiKey;
+  }
+
+  // 應用預設模型
+  if (savedModel && elements.modelSelect) {
+    elements.modelSelect.value = savedModel;
+  }
+
+  // 應用不透明度
+  if (savedOpacity) {
+    const opacity = parseInt(savedOpacity);
+    if (elements.opacitySlider && elements.opacityValue) {
+      elements.opacitySlider.value = opacity;
+      elements.opacityValue.textContent = `${opacity}%`;
+      window.electronAPI.setOpacity(opacity / 100);
+    }
+  }
+
+  console.log('Loaded saved settings:', { savedApiKey: !!savedApiKey, savedModel, savedOpacity });
+}
+
+function openSettings() {
+  if (!elements.settingsPanel) return;
+
+  // 載入當前設置到設置面板
+  if (elements.apiKeyInput) {
+    elements.apiKeyInput.value = localStorage.getItem('apiKey') || config.ai.apiKey || '';
+  }
+
+  // 載入模型列表到設置面板
+  if (elements.defaultModelSelect && elements.modelSelect) {
+    elements.defaultModelSelect.innerHTML = elements.modelSelect.innerHTML;
+    const savedModel = localStorage.getItem('defaultModel') || config.ai.model;
+    elements.defaultModelSelect.value = savedModel;
+  }
+
+  // 載入不透明度
+  const savedOpacity = localStorage.getItem('defaultOpacity') || '95';
+  if (elements.defaultOpacitySlider && elements.defaultOpacityValue) {
+    elements.defaultOpacitySlider.value = savedOpacity;
+    elements.defaultOpacityValue.textContent = `${savedOpacity}%`;
+  }
+
+  elements.settingsPanel.style.display = 'flex';
+}
+
+function closeSettings() {
+  if (elements.settingsPanel) {
+    elements.settingsPanel.style.display = 'none';
+  }
+}
+
+function saveSettings() {
+  // 保存 API Key
+  const apiKey = elements.apiKeyInput?.value?.trim();
+  if (apiKey) {
+    localStorage.setItem('apiKey', apiKey);
+    config.ai.apiKey = apiKey;
+  }
+
+  // 保存預設模型
+  const defaultModel = elements.defaultModelSelect?.value;
+  if (defaultModel) {
+    localStorage.setItem('defaultModel', defaultModel);
+    if (elements.modelSelect) {
+      elements.modelSelect.value = defaultModel;
+    }
+  }
+
+  // 保存不透明度
+  const opacity = elements.defaultOpacitySlider?.value;
+  if (opacity) {
+    localStorage.setItem('defaultOpacity', opacity);
+    if (elements.opacitySlider && elements.opacityValue) {
+      elements.opacitySlider.value = opacity;
+      elements.opacityValue.textContent = `${opacity}%`;
+      window.electronAPI.setOpacity(parseInt(opacity) / 100);
+    }
+  }
+
+  console.log('Settings saved:', { apiKey: !!apiKey, defaultModel, opacity });
+  
+  alert('設置已保存！');
+  closeSettings();
 }
 
 // 啟動應用

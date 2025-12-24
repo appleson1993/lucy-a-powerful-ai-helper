@@ -9,15 +9,17 @@
   "ai": {
     "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
     "apiKey": "",
-    "model": "openai/gpt-4o",
+    "model": "openrouter/auto",
     "models": [
+      "openrouter/auto",
       "openai/gpt-4o",
       "anthropic/claude-3.5-sonnet",
       "google/gemini-pro-1.5",
       "meta-llama/llama-3.2-90b-vision-instruct"
     ],
     "maxTokens": 500,
-    "temperature": 0.7
+    "temperature": 0.7,
+    "systemPrompt": "你是一個專業的文案生成助手。請直接輸出可用的內容，不要加入「當然」「好的」「可以」等客套話。直接回答主體內容，簡潔有力。"
   },
   "screenshot": {
     "quality": 0.5,

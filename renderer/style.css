@@ -21,11 +21,94 @@ body {
   border-radius: 12px 12px 0 0;
   -webkit-app-region: drag;
   backdrop-filter: blur(10px);
+  gap: 12px;
 }
 
 .title {
   font-size: 14px;
   font-weight: bold;
+  flex-shrink: 0;
+}
+
+.btn-settings {
+  width: 32px;
+  height: 24px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.btn-settings:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.opacity-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+  flex: 1;
+  justify-content: center;
+}
+
+.opacity-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+}
+
+.opacity-slider {
+  width: 120px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #6366f1;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.opacity-slider::-webkit-slider-thumb:hover {
+  background: #818cf8;
+}
+
+.opacity-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #6366f1;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.opacity-slider::-moz-range-thumb:hover {
+  background: #818cf8;
+}
+
+.opacity-value {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  min-width: 40px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .controls {
@@ -389,6 +472,129 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 設置面板 */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: no-drag;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: rgba(80, 80, 90, 0.95);
+  color: white;
+  border-radius: 12px 12px 0 0;
+}
+
+.settings-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.btn-close-settings {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 20px;
+  transition: background 0.2s;
+}
+
+.btn-close-settings:hover {
+  background: rgba(255, 0, 0, 0.6);
+}
+
+.settings-body {
+  background: rgba(30, 30, 35, 0.95);
+  padding: 20px;
+  border-radius: 0 0 12px 12px;
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.setting-item {
+  margin-bottom: 20px;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 8px;
+  color: #d0d0d0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.setting-item small {
+  display: block;
+  margin-top: 4px;
+  color: #888;
+  font-size: 11px;
+}
+
+.setting-item small a {
+  color: #6366f1;
+  text-decoration: none;
+}
+
+.setting-item small a:hover {
+  text-decoration: underline;
+}
+
+.setting-input,
+.setting-select {
+  width: 100%;
+  padding: 10px;
+  background: rgba(50, 50, 55, 0.9);
+  border: 1px solid rgba(100, 100, 110, 0.5);
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.setting-input:focus,
+.setting-select:focus {
+  border-color: #6366f1;
+}
+
+.btn-save-settings {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 10px;
+}
+
+.btn-save-settings:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.btn-save-settings:active {
+  transform: translateY(0);
 }
 
 /* 捲軸樣式 */

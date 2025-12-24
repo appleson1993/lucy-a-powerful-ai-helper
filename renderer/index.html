@@ -10,6 +10,12 @@
   <!-- 標題欄 -->
   <div class="title-bar">
     <div class="title">AI 文案生成工具</div>
+    <button class="btn-settings" id="btnSettings" title="設置">⚙️</button>
+    <div class="opacity-control">
+      <span class="opacity-label">透明度</span>
+      <input type="range" class="opacity-slider" id="opacitySlider" min="30" max="100" value="95" />
+      <span class="opacity-value" id="opacityValue">95%</span>
+    </div>
     <div class="controls">
       <button class="btn-minimize" id="btnMinimize">−</button>
       <button class="btn-close" id="btnClose">×</button>
@@ -83,6 +89,33 @@
         <button class="btn-history-toggle" id="btnHistoryToggle">▼</button>
       </div>
       <div class="history-list" id="historyList" style="display: none;"></div>
+    </div>
+  </div>
+
+  <!-- 設置面板 -->
+  <div class="settings-panel" id="settingsPanel" style="display: none;">
+    <div class="settings-header">
+      <h3>設置</h3>
+      <button class="btn-close-settings" id="btnCloseSettings">×</button>
+    </div>
+    <div class="settings-body">
+      <div class="setting-item">
+        <label for="apiKeyInput">OpenRouter API Key</label>
+        <input type="password" id="apiKeyInput" class="setting-input" placeholder="sk-or-v1-..." />
+        <small>請到 <a href="https://openrouter.ai/keys" target="_blank">OpenRouter</a> 獲取 API Key</small>
+      </div>
+      <div class="setting-item">
+        <label for="defaultModelSelect">預設模型</label>
+        <select id="defaultModelSelect" class="setting-select"></select>
+      </div>
+      <div class="setting-item">
+        <label for="defaultOpacitySlider">預設不透明度</label>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <input type="range" id="defaultOpacitySlider" class="opacity-slider" min="30" max="100" value="95" style="flex: 1;" />
+          <span id="defaultOpacityValue" style="min-width: 40px;">95%</span>
+        </div>
+      </div>
+      <button class="btn-save-settings" id="btnSaveSettings">💾 保存設置</button>
     </div>
   </div>
 
