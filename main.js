@@ -282,11 +282,12 @@ ipcMain.handle('save-history', (event, data) => {
 });
 
 ipcMain.handle('generate-text', async (event, data) => {
+  let apiConfig = null;
   try {
     const { screenshot, prompt, model } = data;
 
     // 依據模型選擇 API
-    const apiConfig = getAPIConfig(model);
+    apiConfig = getAPIConfig(model);
     
     console.log('Generating with model:', model, 'Has screenshot:', !!screenshot);
     
@@ -326,9 +327,9 @@ ipcMain.handle('generate-text', async (event, data) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.ai.apiKey}`,
-        'HTTP-Referer': 'https://github.com/yourusername/electron-ai-writer',
-        'Referer': 'https://github.com/yourusername/electron-ai-writer',
-        'X-Title': 'Electron AI Writer'
+        'HTTP-Referer': 'https://github.com/appleson1993/lucy-a-powerful-ai-helper',
+        'Referer': 'https://github.com/appleson1993/lucy-a-powerful-ai-helper',
+        'X-Title': 'Lucy - AI Writer'
       },
       timeout: 60000
     });
@@ -340,12 +341,13 @@ ipcMain.handle('generate-text', async (event, data) => {
     const status = error.response?.status;
     const data = error.response?.data;
     const headers = error.response?.headers;
+    const errorUrl = (typeof error.config?.url === 'string' ? error.config.url : undefined) || (apiConfig ? apiConfig.url : config.ai.apiUrl);
     console.error('AI generation failed:', {
       message: error.message,
       status,
       data,
       headers,
-      url: (typeof error.config?.url === 'string' ? error.config.url : undefined) || apiConfig?.url,
+      url: errorUrl,
       model: data?.model || data?.id || 'unknown',
     });
     const errorMsg = (data?.error?.message || data?.message || error.message || 'Unknown error');
