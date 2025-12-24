@@ -1,0 +1,53 @@
+{
+  "shortcut": "CommandOrControl+Alt+Q",
+  "window": {
+    "width": 600,
+    "height": 500,
+    "alwaysOnTop": true,
+    "autoHideDelay": 3000
+  },
+  "ai": {
+    "apiUrl": "https://openrouter.ai/api/v1/chat/completions",
+    "apiKey": "",
+    "model": "openai/gpt-4o",
+    "models": [
+      "openai/gpt-4o",
+      "anthropic/claude-3.5-sonnet",
+      "google/gemini-pro-1.5",
+      "meta-llama/llama-3.2-90b-vision-instruct"
+    ],
+    "maxTokens": 500,
+    "temperature": 0.7
+  },
+  "screenshot": {
+    "quality": 0.5,
+    "maxWidth": 1920,
+    "maxHeight": 1080
+  },
+  "textInput": {
+    "delay": 50,
+    "retryAttempts": 3
+  },
+  "templates": [
+    {
+      "name": "社群貼文",
+      "prompt": "根據上方截圖，生成吸引人的社群媒體貼文，長度約100字"
+    },
+    {
+      "name": "客服回覆",
+      "prompt": "根據上方截圖內容，生成專業且友善的客服回覆"
+    },
+    {
+      "name": "商品描述",
+      "prompt": "根據上方截圖產品資訊，撰寫吸引人的商品描述，突出特點"
+    },
+    {
+      "name": "會議記錄",
+      "prompt": "根據上方截圖內容，整理成結構化的會議記錄"
+    }
+  ],
+  "history": {
+    "maxRecords": 10,
+    "dbPath": "./data/history.db"
+  }
+}

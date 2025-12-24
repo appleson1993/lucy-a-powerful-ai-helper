@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+data/*.db
+config.local.json
+.env
+build/
+out/

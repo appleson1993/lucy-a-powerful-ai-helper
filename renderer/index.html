@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 文案生成工具</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 標題欄 -->
+  <div class="title-bar">
+    <div class="title">AI 文案生成工具</div>
+    <div class="controls">
+      <button class="btn-minimize" id="btnMinimize">−</button>
+      <button class="btn-close" id="btnClose">×</button>
+    </div>
+  </div>
+
+  <!-- 主內容 -->
+  <div class="container">
+    <!-- 截圖預覽區 -->
+    <div class="screenshot-section">
+      <div class="screenshot-placeholder" id="screenshotPlaceholder">
+        <span>點擊下方按鈕截圖（可選）</span>
+      </div>
+      <img class="screenshot-preview" id="screenshotPreview" style="display: none;" />
+      <div class="screenshot-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+        <button class="btn-screenshot" id="btnScreenshot">📸 截圖</button>
+        <button class="btn-enlarge" id="btnEnlarge" style="display: none;">🔍 放大</button>
+        <button class="btn-clear-screenshot" id="btnClearScreenshot" style="display: none;">🗑️ 清除</button>
+      </div>
+    </div>
+
+    <!-- 輸入區 -->
+    <div class="input-section">
+      <div class="templates">
+        <button class="template-btn" data-template="0">📱 社群貼文</button>
+        <button class="template-btn" data-template="1">💬 客服回覆</button>
+        <button class="template-btn" data-template="2">🛍️ 商品描述</button>
+        <button class="template-btn" data-template="3">📝 會議記錄</button>
+      </div>
+      
+      <textarea 
+        class="prompt-input" 
+        id="promptInput" 
+        placeholder="輸入您的生成指令..."
+        rows="3"
+      ></textarea>
+
+      <div class="settings-row">
+        <select class="model-select" id="modelSelect">
+          <option value="gpt-4o">GPT-4o</option>
+          <option value="claude-3-opus">Claude 3</option>
+          <option value="gemini-pro">Gemini Pro</option>
+        </select>
+        <button class="btn-generate" id="btnGenerate">✨ 生成文案</button>
+      </div>
+    </div>
+
+    <!-- 結果區 -->
+    <div class="result-section" id="resultSection" style="display: none;">
+      <div class="result-header">
+        <span class="result-title">生成結果</span>
+        <div class="result-actions">
+          <button class="btn-copy" id="btnCopy">📋 複製</button>
+          <button class="btn-edit" id="btnEdit">✏️ 編輯</button>
+        </div>
+      </div>
+      <div class="result-content" id="resultContent"></div>
+      <button class="btn-send" id="btnSend">📤 送出並回填</button>
+    </div>
+
+    <!-- 載入中 -->
+    <div class="loading" id="loading" style="display: none;">
+      <div class="spinner"></div>
+      <span>AI 正在生成中...</span>
+    </div>
+
+    <!-- 歷史記錄 -->
+    <div class="history-section">
+      <div class="history-header">
+        <span>📚 最近記錄</span>
+        <button class="btn-history-toggle" id="btnHistoryToggle">▼</button>
+      </div>
+      <div class="history-list" id="historyList" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
