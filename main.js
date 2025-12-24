@@ -4,11 +4,42 @@ const fs = require('fs');
 const Database = require('better-sqlite3');
 const axios = require('axios');
 
-// 載入配置
-let config = require('./config.json');
-if (fs.existsSync('./config.local.json')) {
-  config = { ...config, ...require('./config.local.json') };
+// 載入配置（深度合併，避免局部覆蓋破壞 ai.apiUrl 等設定）
+function isObject(v) {
+  return v && typeof v === 'object' && !Array.isArray(v);
 }
+
+function deepMerge(target, source) {
+  const out = { ...target };
+  if (!isObject(source)) return out;
+  for (const key of Object.keys(source)) {
+    const sv = source[key];
+    const tv = out[key];
+    out[key] = isObject(sv) && isObject(tv) ? deepMerge(tv, sv) : sv;
+  }
+  return out;
+}
+
+function loadConfig() {
+  const base = require('./config.json');
+  let local = {};
+  if (fs.existsSync('./config.local.json')) {
+    try {
+      local = require('./config.local.json');
+    } catch (e) {
+      console.error('Failed to load config.local.json:', e.message);
+    }
+  }
+  const merged = deepMerge(base, local);
+  // 環境變數優先
+  if (process.env.OPENROUTER_API_KEY) {
+    merged.ai = merged.ai || {};
+    merged.ai.apiKey = process.env.OPENROUTER_API_KEY;
+  }
+  return merged;
+}
+
+let config = loadConfig();
 
 // 全域變數
 let mainWindow = null;
@@ -164,22 +195,31 @@ ipcMain.handle('fetch-models', async () => {
         'Authorization': `Bearer ${config.ai.apiKey}`
       }
     });
-    
-    const models = response.data.data
-      .filter(m => m.id.includes('vision') || m.id.includes('gpt-4') || m.id.includes('claude') || m.id.includes('gemini'))
-      .map(m => ({
-        id: m.id,
-        name: m.name || m.id,
-        description: m.description
-      }));
-    
-    console.log(`Fetched ${models.length} vision models`);
+    const models = response.data.data.map(m => ({
+      id: m.id,
+      name: m.name || m.id,
+      description: m.description
+    }));
+    console.log(`Fetched ${models.length} models from OpenRouter`);
     return { success: true, models };
   } catch (error) {
     console.error('Failed to fetch models:', error.message);
     return { success: false, error: error.message };
   }
 });
+// 檢查模型是否支援視覺輸入（啟發式）
+function supportsVision(modelId = '') {
+  const id = (modelId || '').toLowerCase();
+  return (
+    id.includes('vision') ||
+    id.includes('gpt-4o') ||
+    id.includes('gpt-4.1') ||
+    id.includes('gpt-4.1-mini') ||
+    id.includes('llava') ||
+    id.includes('llama') && id.includes('vision') ||
+    id.includes('gemini') && (id.includes('vision') || id.includes('1.5'))
+  );
+}
 
 ipcMain.handle('capture-screenshot', async () => {
   try {
@@ -210,44 +250,39 @@ ipcMain.handle('generate-text', async (event, data) => {
     
     console.log('Generating with model:', model, 'Has screenshot:', !!screenshot);
     
-    // 構建消息內容
-    const content = [];
-    
-    // 添加文字提示
-    content.push({
-      type: 'text',
-      text: prompt
-    });
-    
-    // 如果有截圖且格式正確，才加入圖片
-    if (screenshot && typeof screenshot === 'string' && screenshot.startsWith('data:image/')) {
-      content.push({
-        type: 'image_url',
-        image_url: {
-          url: screenshot
-        }
-      });
-      console.log('Screenshot included in request');
-    } else {
-      console.log('No screenshot or invalid format, using text-only');
-    }
+    // 判斷是否附帶圖片（僅視覺模型且為 data:image/...）
+    const hasImage = supportsVision(apiConfig.modelName) && typeof screenshot === 'string' && screenshot.startsWith('data:image/');
 
-    const response = await axios.post(apiConfig.url, {
+    // 與官方範例一致：無圖用字串，有圖用 content 陣列 + input_image
+    const messages = hasImage
+      ? [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'input_image', image_url: { url: screenshot } }] }]
+      : [{ role: 'user', content: prompt }];
+
+    console.log('Payload type:', hasImage ? 'multimodal' : 'text-only');
+    console.log('Request URL:', apiConfig.url);
+
+    const requestBody = {
       model: apiConfig.modelName,
-      messages: [
-        {
-          role: 'user',
-          content: content
-        }
-      ],
+      messages: messages,
       max_tokens: config.ai.maxTokens,
       temperature: config.ai.temperature,
       stream: false
-    }, {
+    };
+
+    // 基本驗證：URL 與 API Key 是否存在
+    if (!apiConfig.url || !/^https?:\/\//.test(apiConfig.url)) {
+      throw new Error(`Invalid API URL: ${apiConfig.url}`);
+    }
+    if (!config.ai.apiKey || typeof config.ai.apiKey !== 'string') {
+      throw new Error('Missing OPENROUTER_API_KEY');
+    }
+
+    const response = await axios.post(apiConfig.url, requestBody, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.ai.apiKey}`,
         'HTTP-Referer': 'https://github.com/yourusername/electron-ai-writer',
+        'Referer': 'https://github.com/yourusername/electron-ai-writer',
         'X-Title': 'Electron AI Writer'
       },
       timeout: 60000
@@ -257,39 +292,61 @@ ipcMain.handle('generate-text', async (event, data) => {
     console.log('Generation successful');
     return { success: true, result };
   } catch (error) {
-    console.error('AI generation failed:', error.response?.data || error.message);
-    const errorMsg = error.response?.data?.error?.message || error.message;
+    const status = error.response?.status;
+    const data = error.response?.data;
+    const headers = error.response?.headers;
+    console.error('AI generation failed:', {
+      message: error.message,
+      status,
+      data,
+      headers,
+      url: (typeof error.config?.url === 'string' ? error.config.url : undefined) || apiConfig?.url,
+      model: data?.model || data?.id || 'unknown',
+    });
+    const errorMsg = (data?.error?.message || data?.message || error.message || 'Unknown error');
     return { 
       success: false, 
-      error: errorMsg
+      error: errorMsg,
+      debug: { status, data }
     };
   }
 });
 
 ipcMain.handle('send-text-to-window', async (event, text) => {
   try {
+    // 先寫入剪貼簿
+    const { clipboard } = require('electron');
+    clipboard.writeText(text);
+    console.log('Text copied to clipboard:', text.substring(0, 50) + '...');
+
     // 隱藏工具視窗
     if (toolWindow) {
       toolWindow.hide();
     }
 
-    // 等待一小段時間讓視窗切換完成
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // 等待足夠時間讓焦點切換回原視窗（增加至800ms確保切換完成）
+    await new Promise(resolve => setTimeout(resolve, 800));
 
-    // 使用 keysender 輸入文字（推薦方案 B）
+    // 使用 keysender 的正確 API：貼上剪貼簿內容（速度快、相容性好）
     const keysender = require('keysender');
-    
-    // 模擬 Ctrl+A 全選（可選）
-    // keysender.sendCombination(['control', 'a']);
-    // await new Promise(resolve => setTimeout(resolve, 100));
+    const sender = new keysender.Hardware();
+    const kb = sender.keyboard;
 
-    // 輸入文字
-    await keysender.sendText(text, config.textInput.delay);
+    // 執行貼上操作
+    await kb.sendKeyAsync(['ctrl', 'v'], 50);
 
     return { success: true };
   } catch (error) {
-    console.error('Text input failed:', error);
-    return { success: false, error: error.message };
+    console.error('Text input failed, fallback to typing:', error);
+    try {
+      const keysender = require('keysender');
+      const sender = new keysender.Hardware();
+      await sender.keyboard.printTextAsync(text, config.textInput.delay || 0);
+      return { success: true };
+    } catch (err2) {
+      console.error('Text typing fallback failed:', err2);
+      return { success: false, error: err2.message };
+    }
   }
 });
 

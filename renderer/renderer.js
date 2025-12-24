@@ -316,6 +316,22 @@ async function generateText() {
       
       // 重新載入歷史
       loadHistory();
+
+      // 生成成功後自動回填到原視窗，不需再按第二顆按鈕
+      try {
+        // 先在前端也寫入剪貼簿，方便用戶手動貼上
+        await navigator.clipboard.writeText(currentResult);
+        console.log('Text copied to clipboard in renderer');
+        
+        const sendResp = await window.electronAPI.sendTextToWindow(currentResult);
+        if (!sendResp.success) {
+          console.error('自動回填失敗:', sendResp.error);
+          alert('自動回填失敗: ' + sendResp.error + '\n內容已複製到剪貼簿，可手動貼上 (Ctrl+V)');
+        }
+      } catch (autoErr) {
+        console.error('自動回填錯誤:', autoErr);
+        alert('自動回填錯誤: ' + autoErr.message + '\n內容已複製到剪貼簿，可手動貼上 (Ctrl+V)');
+      }
     } else {
       console.error('Generation failed:', response.error);
       alert('生成失敗:\n' + response.error);
