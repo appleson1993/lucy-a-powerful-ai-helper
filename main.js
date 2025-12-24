@@ -253,9 +253,9 @@ ipcMain.handle('generate-text', async (event, data) => {
     // 判斷是否附帶圖片（僅視覺模型且為 data:image/...）
     const hasImage = supportsVision(apiConfig.modelName) && typeof screenshot === 'string' && screenshot.startsWith('data:image/');
 
-    // 與官方範例一致：無圖用字串，有圖用 content 陣列 + input_image
+    // OpenRouter 標準格式：無圖用字串，有圖用 content 陣列 + image_url
     const messages = hasImage
-      ? [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'input_image', image_url: { url: screenshot } }] }]
+      ? [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: screenshot } }] }]
       : [{ role: 'user', content: prompt }];
 
     console.log('Payload type:', hasImage ? 'multimodal' : 'text-only');
