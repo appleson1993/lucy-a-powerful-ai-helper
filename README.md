@@ -1,7 +1,8 @@
 # Electron AI 文案生成工具
 
 這是一個基於 Electron 開發的桌面應用程式,可透過全域快捷鍵快速啟動 AI 文案生成功能,自動截取螢幕畫面並將生成的內容回填到原始視窗。
-![Uploading image.png…]()
+<img width="588" height="506" alt="image" src="https://github.com/user-attachments/assets/8fec9af9-e1d9-4b78-bcee-a9028b10fbe1" />
+
 
 ## 功能特色
 
